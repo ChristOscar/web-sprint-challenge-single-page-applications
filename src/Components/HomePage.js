@@ -1,9 +1,9 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
-
+import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 
 export default function HomePage(){
     const history = useHistory()
+
     const routeToPizza = () => {
         history.push('/pizza');
     }
@@ -12,10 +12,12 @@ export default function HomePage(){
         <div className='home container'>
             <img 
             className='pizza-image'
-            src='./Pizza.jpg'
+            src='https://source.unsplash.com/IfQlwNqJqV8'
             alt='This is a pizza'
             />
-            <button onClick={routeToPizza} className='pizzaBtn'>Pizza?</button>
+            <div className="pizzaButton">
+                <button onClick={routeToPizza} className='pizzaBtn'>Pizza?</button>
+            </div>
         </div>
     )
 }

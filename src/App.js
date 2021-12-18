@@ -1,124 +1,116 @@
 import React, { useState, useEffect } from "react";
 import { Link, Route, Switch } from 'react-router-dom';
-import axios from "axios";
 import * as yup from 'yup';
+import formSchema from './Validation/Schema';
+import axios from 'axios';
+import './App.css';
 
-import HomePage from './Components/HomePage';
-import PizzaForm from './Components/PizzaForm';
-import Order from './Components/Confirmation';
-import schema from './Validation/Schema';
+///components
+import Item from './Components/Confirmation';
+import Form from './Components/PizzaForm';
+import HomePage from "./Components/HomePage";
 
 const initialFormValues = {
-  'name': '',
-  'size': '',
-  'pepperoni': false,
-  'sausage': false,
-  'blackOlives': false,
-  'bananaPeppers': false,
-  'chicken': false,
-  'ham': false,
-  'pineapple': false,
-  'special': '',
+  name: '',
+  size: '',
+  pepperoni: false,
+  pineapple: false,
+  peppers: false,
+  onions: false,
+  special: '',
 }
 
 const initialFormErrors = {
   name: '',
   size: '',
-  special: ''
+  pepperoni: '',
+  pineapple: '',
+  peppers: '',
+  onions: '',
+  special: '',
 }
 
-const initialOrders = []
-const initialDisabled = true;
+const initialOrder = []
+const initialDisabled = true
 
 const App = () => {
-  const [orders, setOrders] = useState(initialOrders);
-  const [formValues, setFormValues] = useState(initialFormValues);
-  const [formErrors, setFormErrors] = useState(initialFormErrors);
-  const [disabled, setDisabled] = useState(initialDisabled);
+const [order, setOrder] = useState(initialOrder)
+const [formValues, setFormValues] = useState(initialFormValues)
+const [formErrors, setFormErrors] = useState(initialFormErrors)
+const [disabled, setDisabled] = useState(initialDisabled)
 
-  const getOrders = () => {
-    axios.get('https://reqres.in/api/orders')
-    .then(res => {
-      setOrders(res.data.data);
-    }).catch(err => console.error(err))
-  }
-
-  const postNewOrder = newOrder => {
-    axios.post('https://reqres.in/api/orders')
-    .then(res => {
-      setOrders([res.data.data, ...orders ]);
-    }).catch(err => console.log(err))
+const postNewOrder = newOrder => {
+  axios.post('https://reqres.in/api/orders', newOrder)
+    .then(resp => {
+      setOrder([resp.data, ...order]);
+    }).catch(error => console.log(error))
     .finally(() => setFormValues(initialFormValues))
+}
+
+const validate = (name, value) => {
+  yup.reach(formSchema, name)
+  .validate(value)
+  .then(() => setFormErrors({...formErrors, [name]: ''}))
+  .catch(err => setFormErrors({...formErrors, [name]: err.errors[0]}))
+}
+
+const inputChange = (name, value) => {
+  validate(name, value);
+  setFormValues({
+    ...formValues,
+    [name]: value
+  })
+}
+
+const formSubmit = () => {
+  const newOrder = {
+    name: formValues.name.trim(),
+    size: formValues.size.trim(),
+    toppings: ['pepperoni', 'pineapple', 'peppers', 'onions'].filter(topping => !!formValues[topping]),
+    special: formValues.special
   }
+  postNewOrder(newOrder);
+}
 
-  const validate = (name, value) => {
-    yup.reach(schema, name)
-    .validate(value)
-    .then(() => setFormErrors({ ...formErrors, [name]: '' }))
-    .catch(err => setFormErrors({ ...formErrors, [name]: err.errors[0] }))
-  }
+useEffect(() => {
+  formSchema.isValid(formValues).then(valid => setDisabled(!valid))
+})
 
-  const inputChange = (name, value) => {
-    validate(name, value);
-    setFormValues({ ...formValues, [name]: value 
-    })
-  }
-
-  const formSubmit = () => {
-    const newOrder = {
-      name: formValues.name.trim(),
-      size: formValues.size,
-      special: formValues.special.trim(),
-      toppings: ['pepperoni', 'sausage', 'black olives', 'banana peppers', 'chicken', 'ham', 'pineapple'].filter(topping => !!formValues[topping])
-    }
-    postNewOrder(newOrder);
-  }
-
-  useEffect(() => {
-    getOrders()
-  }, [])
-
-  useEffect(() => {
-    schema.isValid(formValues).then(valid => setDisabled(!valid))
-  }, [formValues])
- 
   return (
-    <>
-      <div className='container'>
-        <h1>BLOOM TECHIE'S PIZZERIA</h1>
-        <div className='nav-links'>
-          <Link to='/'>Home</Link>
-          <Link to='/help'>Help</Link>
-          </div>
-
-        <Switch>
-          <Route path='/pizza/confirmation'>
-            <Order details={orders}/>
-          </Route>
-          <Route path='/pizza'>
-            <PizzaForm 
-            values={formValues}
+    <div className='container'>
+      <header>
+        <h1>BLOOM TECHIES PIZZERIA</h1>
+        <nav className='nav-links'>
+          <Link id='home' to='/'>Home</Link>
+          <Link id='order-pizza' to='/pizza'>Order Form</Link>
+        </nav>
+      </header>
+      <div className='body-container'>
+      <Switch>
+        <Route path='/pizza'>
+          <Form 
+            values={formValues} 
             change={inputChange}
             submit={formSubmit}
-            errors={formErrors}
             disabled={disabled}
-            />
-
-            {
-              orders.map(order => {
-                return (
-                  <Order key={order.id} details={order} />
-                )
-              })
-            }
-
-          </Route>
-          <Route path='/'>
+            errors={formErrors}
+            details={order}
+          />
+          <h3>Your current order...</h3>
+          {
+            order.map(item => {
+              return (
+                <Item key={item.id} details={item}/>
+              )
+            })
+          }
+        </Route>
+        <Route path='/'>
             <HomePage />
           </Route>
-        </Switch>
+      </Switch>
       </div>
-    </>
+    </div>
   );
 };
 export default App;
